@@ -1,0 +1,24 @@
+name: Bridge checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  protocol-and-security:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved from upstream tag
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5, resolved from upstream tag
+        with:
+          python-version: '3.11'
+      - name: Unit and stdio integration tests (no TIA installed)
+        run: python -m unittest discover -s tests -v
+      - name: Scan exact source tree and reachable history
+        run: python scripts/scan_publish.py --staged --history
+      - name: Verify Python syntax
+        run: python -m compileall -q tia_bridge scripts

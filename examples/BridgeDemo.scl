@@ -1,0 +1,11 @@
+// Offline teaching example. No physical I/O or hardware operations.
+// Requires compilation in the user's actual TIA version before use.
+FUNCTION "BridgeDemo" : Bool
+VERSION : 0.1
+   VAR_INPUT
+      A : Bool;
+      B : Bool;
+   END_VAR
+BEGIN
+   #BridgeDemo := #A XOR #B;
+END_FUNCTION

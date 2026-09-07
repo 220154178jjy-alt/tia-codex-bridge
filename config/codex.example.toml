@@ -1,0 +1,16 @@
+# Merge this table into your LOCAL Codex configuration.
+# All paths below are generic examples. Keep the real config outside Git.
+[mcp_servers.tia_openness]
+command = 'C:\Dev\tia-codex-bridge\.venv\Scripts\python.exe'
+args = [
+  '-m', 'tia_bridge',
+  '--project-root', 'C:\TIA\Projects',
+  '--workspace', 'C:\TIA\BridgeWork',
+  '--tia-version', '20',
+  '--tia-api-dir', 'C:\Program Files\Siemens\Automation\Portal V20\PublicAPI\V20'
+]
+startup_timeout_sec = 30
+tool_timeout_sec = 300
+
+# To enable edits to WORKING COPIES, append '--allow-writes' to args.
+# No API key, HTTP endpoint, SSH host, or port is needed by this bridge.

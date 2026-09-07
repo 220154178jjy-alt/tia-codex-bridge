@@ -1,0 +1,45 @@
+# Credentials and machine-specific configuration
+.env
+.env.*
+*.local.*
+.codex/
+.ssh/
+.aws/
+auth.json
+credentials*
+secrets*
+*.pem
+*.key
+*.p12
+*.pfx
+*.kdbx
+# Never publish engineering projects, exports, logs, or proprietary SDK binaries
+workspace/
+projects/
+sessions/
+artifacts/
+staging/
+imports/
+logs/
+backups/
+*.ap[0-9]*
+*.zap[0-9]*
+*.als[0-9]*
+*.al[0-9]*
+*.xml
+*.db
+*.bak
+*.log
+*.jsonl
+*.dll
+*.exe
+*.zip
+# Python build output
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
