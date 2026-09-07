@@ -147,7 +147,9 @@ class MCPServer:
                 except (ValueError, UnicodeError, RecursionError):
                     response = self.error(None, -32700, "Parse error")
                 if response is not None:
-                    stdout.write((json.dumps(response, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8"))
+                    # Escape Unicode on the wire, including lone surrogates accepted
+                    # by the JSON decoder. A request ID must not kill the transport.
+                    stdout.write((json.dumps(response, ensure_ascii=True, allow_nan=False) + "\n").encode("utf-8"))
                     stdout.flush()
         finally:
             self.bridge.close()

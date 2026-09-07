@@ -21,3 +21,31 @@ Date: 2026-09-06. Release: 0.1.0.
 Before each push, run `python scripts/scan_publish.py --staged --history`. A clean result means the included heuristic rules found no matches in that exact index/reachable history. It is not proof that every conceivable secret format is absent. Public repository contents remain readable by crawlers.
 
 The workflow runs Linux and Windows mock/protocol checks after upload. Those CI results are separate from the initial Linux execution above. Windows CI without TIA does not establish real Openness compatibility.
+
+## Maintenance verification: 2026-09-07
+
+The published baseline `e88f4a7` passed all 38 tests on both GitHub-hosted
+Windows and Ubuntu, including both symbolic-link rejection tests without skips.
+See [baseline workflow run](https://github.com/220154178jjy-alt/tia-codex-bridge/actions/runs/34084098169).
+
+Additional testing reproduced a stdio crash: a JSON-escaped lone surrogate in a
+request ID caused `UnicodeEncodeError` while writing the response, disconnecting
+the client before subsequent requests could be processed. Response serialization
+now escapes Unicode on the wire; decoded text and request IDs are preserved.
+The regression test covers high/low lone surrogates, ordinary Unicode and a
+following request to verify that the connection remains usable.
+
+Symbolic-link tests now skip only Windows error 1314 (missing privilege), rather
+than hiding all creation errors. Two new Windows tests create actual directory
+junctions and verify that staging escapes and project-folder links are rejected
+before backend dispatch. Junction creation requires no symlink privilege in the
+tested environment; cleanup removes the link itself, preserving its target.
+
+Local Windows / Python 3.12.14 verification: 42 tests, 40 passed and 2 skipped
+specifically for error 1314. Both junction tests ran and passed. Python syntax and
+diff whitespace checks passed. On non-Windows systems only the two Windows
+junction tests are intentionally skipped.
+
+No TIA Portal/STEP 7/Openness installation was found in the checked standard
+installation locations and uninstall registry. Real Siemens API calls, real
+project compilation and PLC hardware acceptance remain unverified.

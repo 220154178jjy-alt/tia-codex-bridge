@@ -1,8 +1,10 @@
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tia_bridge.content import validate_source
 from tia_bridge.errors import BridgeError
@@ -13,6 +15,14 @@ from tia_bridge.service import Bridge
 
 
 class BridgeFixture:
+    def make_symlink(self, link, target):
+        try:
+            link.symlink_to(target)
+        except OSError as exc:
+            if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                self.skipTest("Windows symlink privilege unavailable (WinError 1314)")
+            raise
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -105,20 +115,19 @@ class BridgeTest(BridgeFixture, unittest.TestCase):
                 relative_file(self.work, path, suffixes={".scl"})
 
     def test_link_escape_rejected(self):
-        try:
-            (self.work / "staging" / "link.scl").symlink_to(self.original)
-        except OSError:
-            self.skipTest("Symlink privilege unavailable on this Windows runner")
+        self.make_symlink(self.work / "staging" / "link.scl", self.original)
         with self.assertRaises(BridgeError):
             self.bridge.read_artifact("staging/link.scl")
 
     def test_project_link_rejected(self):
-        try:
-            (self.original.parent / "leak").symlink_to(self.source)
-        except OSError:
-            self.skipTest("Symlink privilege unavailable")
+        self.make_symlink(self.original.parent / "leak", self.source)
         with self.assertRaises(BridgeError):
             self.bridge.open_project("Demo/Demo.ap20")
+
+    def test_unexpected_symlink_creation_error_is_not_skipped(self):
+        with patch.object(Path, "symlink_to", side_effect=FileExistsError("existing link")):
+            with self.assertRaises(FileExistsError):
+                self.make_symlink(self.work / "staging" / "link.scl", self.original)
 
     def test_xml_entities_and_non_block_xml_rejected(self):
         for data in [b'<!DOCTYPE Document [<!ENTITY x SYSTEM "file:///x">]><Document/>',
@@ -208,6 +217,16 @@ class ProtocolTest(BridgeFixture, unittest.TestCase):
         output = io.BytesIO()
         self.server.serve(io.BytesIO(b"x" * (MAX_FRAME_BYTES + 1)), output)
         self.assertEqual(json.loads(output.getvalue())["error"]["code"], -32600)
+
+    def test_escaped_unicode_request_ids_do_not_break_stdio(self):
+        ids = ["\ud800", "\udfff", "\u6d4b\u8bd5\U0001f600", 7]
+        raw = b"".join((json.dumps({"jsonrpc": "2.0", "id": value, "method": "ping"}) + "\n").encode("utf-8")
+                       for value in ids)
+        output = io.BytesIO()
+        self.server.serve(io.BytesIO(raw), output)
+        messages = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([message["id"] for message in messages], ids)
+        self.assertTrue(all(message["result"] == {} for message in messages))
 
 
 if __name__ == "__main__":
